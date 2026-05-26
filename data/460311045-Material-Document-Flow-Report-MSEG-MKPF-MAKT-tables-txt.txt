@@ -1,0 +1,490 @@
+*&---------------------------------------------------------------------*
+*& Report ZAP_ASSIGNMENT_2
+*&
+*&---------------------------------------------------------------------*
+*& Coder: Pavan Golesar
+*& Dated:25/12/2013
+*&---------------------------------------------------------------------*
+
+REPORT    ZAP_ASSIGNMENT_2.
+
+TABLES: MKPF, MSEG, MAKT.
+
+TYPE-POOLS SLIS.
+
+SELECTION-SCREEN: BEGIN OF BLOCK B1 WITH FRAME TITLE TEXT-001.
+
+
+SELECT-OPTIONS: S_MBLNR FOR MKPF-MBLNR ,
+                S_WERKS FOR MSEG-WERKS DEFAULT '1000',
+                S_LGORT FOR MSEG-LGORT .
+SELECTION-SCREEN: END OF BLOCK B1.
+
+SELECTION-SCREEN: BEGIN OF BLOCK B2 WITH FRAME TITLE TEXT-002.
+
+PARAMETERS: P_MJAHR TYPE MSEG-MJAHR DEFAULT '2000' ,
+            P_BUDAT TYPE MKPF-BUDAT ,
+            P_MATNR TYPE MSEG-MATNR .
+
+SELECTION-SCREEN: END OF BLOCK B2.
+
+
+TYPES: BEGIN OF TY_MSEG ,
+       MBLNR TYPE MSEG-MBLNR ,
+       WERKS TYPE MSEG-WERKS ,
+       BWART TYPE MSEG-BWART ,
+       COUNT TYPE I ,
+       END OF TY_MSEG ,
+
+         BEGIN OF TY_FINAL ,
+         MBLNR TYPE MKPF-MBLNR,
+         MJAHR TYPE MKPF-MJAHR,
+         BUDAT TYPE MKPF-BUDAT,
+         ZEILE TYPE MSEG-ZEILE,
+         WERKS TYPE MSEG-WERKS,
+         LGORT TYPE MSEG-LGORT,
+         MATNR TYPE MSEG-MATNR,
+         MAKTX TYPE MAKT-MAKTX,
+         MENGE TYPE MSEG-MENGE,
+         MEINS TYPE MSEG-MEINS,
+         END OF TY_FINAL.
+
+
+DATA: GT_MSEG1   TYPE   STANDARD TABLE OF TY_MSEG ,
+      GT_MSEG2   TYPE   STANDARD TABLE OF TY_MSEG ,
+      GS_MSEG1   TYPE   TY_MSEG ,
+      GS_MSEG2   TYPE   TY_MSEG ,
+      GS_FINAL   TYPE   TY_FINAL ,
+      GT_FINAL   TYPE   STANDARD TABLE OF TY_FINAL .
+DATA: GT_FCAT1 TYPE SLIS_T_FIELDCAT_ALV ,
+      GT_FCAT2 TYPE SLIS_T_FIELDCAT_ALV ,
+      GS_FCAT TYPE SLIS_FIELDCAT_ALV ,
+      GT_FCAT_NEW TYPE SLIS_T_FIELDCAT_ALV ,
+      GS_LAYO TYPE SLIS_LAYOUT_ALV ,
+      GT_SORT TYPE SLIS_T_SORTINFO_ALV ,
+      GS_SORT TYPE SLIS_SORTINFO_ALV.
+
+TYPES:    BEGIN OF TY_GT_MKPF_NEW ,
+          MBLNR TYPE MKPF-MBLNR ,
+          MJAHR TYPE MKPF-MJAHR ,
+          BUDAT TYPE MKPF-BUDAT ,
+          END OF TY_GT_MKPF_NEW ,
+
+
+         BEGIN OF TY_GT_MSEG_NEW ,
+          MBLNR TYPE MSEG-MBLNR ,
+          ZEILE TYPE MSEG-ZEILE ,
+          WERKS TYPE MSEG-WERKS ,
+          LGORT TYPE MSEG-LGORT ,
+          MATNR TYPE MSEG-MATNR ,
+          MENGE TYPE MSEG-MENGE ,
+          MEINS TYPE MSEG-MEINS ,
+          END OF TY_GT_MSEG_NEW,
+
+
+          BEGIN OF TY_GT_MAKT ,
+          MATNR TYPE MAKT-MATNR,
+          MAKTX TYPE MAKT-MAKTX,
+          END OF TY_GT_MAKT .
+
+
+DATA:    GT_MKPF_NEW TYPE STANDARD TABLE OF TY_GT_MKPF_NEW ,
+         GT_MSEG_NEW TYPE STANDARD TABLE OF TY_GT_MSEG_NEW ,
+         GT_MAKT TYPE STANDARD TABLE OF TY_GT_MAKT ,
+
+         GS_MKPF_NEW TYPE TY_GT_MKPF_NEW ,
+         GS_MSEG_NEW TYPE TY_GT_MSEG_NEW ,
+         GS_MAKT LIKE LINE OF GT_MAKT .
+
+
+
+
+INITIALIZATION.
+  PERFORM SET_FIELDCAT_1 USING GT_FCAT1[].
+  PERFORM SET_LAYOUT.
+
+START-OF-SELECTION.
+  PERFORM GET_MSEG.
+  PERFORM DISP_MSEG.
+
+*&---------------------------------------------------------------------*
+*&      Form SET_FIELDCAT_1
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+* --> p1          text
+* <-- p2          text
+*----------------------------------------------------------------------*
+FORM SET_FIELDCAT_1 USING GT_FCAT TYPE SLIS_T_FIELDCAT_ALV.
+
+  GS_FCAT-ROW_POS     = 1.
+  GS_FCAT-COL_POS     = 1.
+  GS_FCAT-FIELDNAME   = 'MBLNR'.
+  GS_FCAT-TABNAME     = 'GT_MSEG1'.
+  GS_FCAT-OUTPUTLEN   = 10.
+  GS_FCAT-SELTEXT_M   = 'Mat. Doc'.
+  GS_FCAT-EMPHASIZE   = 'X'.
+  GS_FCAT-KEY         = 'X'.
+  APPEND GS_FCAT TO   GT_FCAT.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   2.
+  GS_FCAT-FIELDNAME   = 'WERKS'.
+  GS_FCAT-TABNAME =   'GT_MSEG1'.
+  GS_FCAT-OUTPUTLEN   = 5.
+  GS_FCAT-SELTEXT_M   = 'Plant'.
+  APPEND GS_FCAT TO   GT_FCAT.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   3.
+  GS_FCAT-FIELDNAME   = 'BWART'.
+  GS_FCAT-TABNAME =   'GT_MSEG1'.
+  GS_FCAT-OUTPUTLEN   = 4.
+  GS_FCAT-SELTEXT_M   = 'Mov.Type'.
+
+  APPEND GS_FCAT TO GT_FCAT.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   4.
+  GS_FCAT-FIELDNAME   = 'COUNT'.
+  GS_FCAT-TABNAME =   'GT_MSEG1'.
+  GS_FCAT-OUTPUTLEN   = 5.
+  GS_FCAT-SELTEXT_M   = 'Count'.
+  GS_FCAT-hotspot =   'X'.
+
+  APPEND GS_FCAT TO GT_FCAT.
+  CLEAR GS_FCAT.
+
+
+  GS_SORT-FIELDNAME = 'COUNT'.
+  GS_SORT-SUBTOT = 'X'.
+  GS_SORT-UP = 'X'.
+  APPEND GS_SORT TO GT_SORT.
+  CLEAR GS_SORT.
+
+* CALL FUNCTION 'REUSE_ALV_FIELDCATALOG_MERGE'
+*   EXPORTING
+*     I_PROGRAM_NAME     = SYST-CPROG
+*    I_INTERNAL_TABNAME = 'GT_MSEG1'
+**    I_STRUCTURE_NAME   =
+*   CHANGING
+*     CT_FIELDCAT        = GT_FCAT[].
+
+ENDFORM.                      " SET_FIELDCAT_1
+*&---------------------------------------------------------------------*
+*&      Form GET_MSEG
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+* --> p1          text
+* <-- p2          text
+*----------------------------------------------------------------------*
+FORM GET_MSEG .
+
+  DATA: LV_CNT TYPE I.
+  SELECT MBLNR WERKS BWART
+         FROM MSEG
+         INTO CORRESPONDING FIELDS OF TABLE GT_MSEG1 UP TO 500 ROWS
+         WHERE WERKS IN S_WERKS
+         AND MJAHR = P_MJAHR .
+
+  APPEND LINES OF GT_MSEG1 TO GT_MSEG2.
+
+  SORT GT_MSEG2 BY BWART MBLNR .
+  DELETE ADJACENT DUPLICATES FROM GT_MSEG2 COMPARING MBLNR BWART.     " HOLDS UNIQUE
+MBLNR RECORDS
+
+  SORT GT_MSEG1 BY BWART MBLNR .
+
+  LOOP AT GT_MSEG2 INTO GS_MSEG2.
+
+    LOOP AT GT_MSEG1 INTO GS_MSEG1 WHERE MBLNR = GS_MSEG2-MBLNR
+                                    AND BWART = GS_MSEG2-BWART.
+      LV_CNT = LV_CNT + 1.
+
+    ENDLOOP.
+
+    GS_MSEG2-COUNT = LV_CNT.
+    MODIFY gt_mseg2 INDEX sy-tabix FROM gs_mseg2 TRANSPORTING count.
+    CLEAR LV_CNT.
+
+  ENDLOOP.
+
+ENDFORM.                    " GET_MSEG
+*&---------------------------------------------------------------------*
+*&       Form DISP_MSEG
+*&---------------------------------------------------------------------*
+*        text
+*----------------------------------------------------------------------*
+* --> p1          text
+* <-- p2          text
+*----------------------------------------------------------------------*
+FORM DISP_MSEG .
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      I_CALLBACK_PROGRAM      = SYST-CPROG
+      I_CALLBACK_USER_COMMAND = 'COUNT_DISP'
+*     I_CALLBACK_TOP_OF_PAGE = ' '
+      I_STRUCTURE_NAME        = 'GT_MSEG2'
+      IS_LAYOUT               = GS_LAYO
+      IT_FIELDCAT             = GT_FCAT1
+      IT_SORT                 = GT_SORT
+        I_DEFAULT                 = 'X'
+*       IT_EVENTS                 =
+      TABLES
+        T_OUTTAB                  = GT_MSEG2.
+
+*    REFRESH: GT_FCAT1 .
+
+ENDFORM.                        " DISP_MSEG
+
+
+FORM COUNT_DISP USING SELFIELD TYPE SLIS_SELFIELD.
+
+    DATA: LV_CNT TYPE I ,
+          LV_VALUE TYPE SY-LISEL.
+    DATA: LV_MBLNR TYPE MSEG-MBLNR .
+
+    LV_VALUE = SY-LISEL.
+    LV_MBLNR = LV_VALUE+0(10).
+
+*    LV_CNT = SELFIELD-VALUE.
+
+*
+*CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+* EXPORTING
+*    INPUT         = IN_LV_VALUE
+* IMPORTING
+*   OUTPUT        = LV_MBLNR
+*           .
+
+    PERFORM GET_LINE_DATA USING LV_MBLNR.
+
+    PERFORM DISP_LINE_DATA.
+
+ENDFORM.
+
+
+
+" SET_LAYOUT
+*&---------------------------------------------------------------------*
+*&      Form GET_LINE_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LV_VALUE text
+*----------------------------------------------------------------------*
+FORM GET_LINE_DATA USING LV_MBLNR TYPE CHAR10.
+
+
+
+
+    SELECT MBLNR
+           MJAHR
+           BUDAT
+           FROM MKPF
+           INTO TABLE GT_MKPF_NEW
+           WHERE MBLNR = LV_MBLNR.
+
+    SORT GT_MKPF_NEW BY MBLNR.
+  IF NOT GT_MKPF_NEW IS INITIAL.
+
+    SELECT MBLNR
+           ZEILE
+           WERKS
+           LGORT
+           MATNR
+           MENGE
+           MEINS
+           FROM MSEG
+           INTO TABLE GT_MSEG_NEW
+           FOR ALL ENTRIES IN GT_MKPF_NEW
+           WHERE MBLNR = GT_MKPF_NEW-MBLNR.
+
+    SORT GT_MSEG_NEW BY MBLNR.
+
+
+    IF NOT GT_MSEG_NEW IS INITIAL.
+
+      SELECT MATNR MAKTX FROM MAKT INTO TABLE GT_MAKT FOR ALL ENTRIES IN
+GT_MSEG_NEW WHERE MATNR = GT_MSEG_NEW-MATNR .
+
+    ENDIF.
+    SORT GT_MAKT BY MATNR.
+
+  ENDIF.
+
+  LOOP AT GT_MKPF_NEW INTO GS_MKPF_NEW.
+    LOOP AT GT_MSEG_NEW INTO GS_MSEG_NEW
+                        WHERE MBLNR = GS_MKPF_NEW-MBLNR.
+      GS_FINAL-MBLNR = GS_MKPF_NEW-MBLNR.
+      GS_FINAL-MJAHR = GS_MKPF_NEW-MJAHR.
+      GS_FINAL-BUDAT = GS_MKPF_NEW-BUDAT.
+
+      GS_FINAL-ZEILE   =   GS_MSEG_NEW-ZEILE .
+      GS_FINAL-WERKS   =   GS_MSEG_NEW-WERKS.
+      GS_FINAL-LGORT   =   GS_MSEG_NEW-LGORT.
+      GS_FINAL-MATNR   =   GS_MSEG_NEW-MATNR.
+      GS_FINAL-MENGE   =   GS_MSEG_NEW-MENGE.
+      GS_FINAL-MEINS   =   GS_MSEG_NEW-MEINS.
+
+      READ TABLE GT_MAKT INTO GS_MAKT WITH KEY MATNR = GS_MSEG_NEW-MATNR.
+      GS_FINAL-MAKTX = GS_MAKT-MAKTX.
+
+      APPEND GS_FINAL TO GT_FINAL.
+      CLEAR: GS_FINAL, GS_MSEG_NEW.
+    ENDLOOP.
+
+    CLEAR: GS_MKPF_NEW.
+  ENDLOOP.
+
+ENDFORM.                        " GET_LINE_DATA
+
+
+
+
+*&---------------------------------------------------------------------*
+*&      Form SET_LAYOUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+* --> p1          text
+* <-- p2          text
+*----------------------------------------------------------------------*
+FORM SET_LAYOUT .
+
+  GS_LAYO-ZEBRA = 'X'.
+  GS_LAYO-COLWIDTH_OPTIMIZE = 'X'.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&       Form DISP_LINE_DATA
+*&---------------------------------------------------------------------*
+*        text
+*----------------------------------------------------------------------*
+* --> p1          text
+* <-- p2          text
+*----------------------------------------------------------------------*
+FORM DISP_LINE_DATA .
+
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   1.
+  GS_FCAT-FIELDNAME   = 'MBLNR'.
+  GS_FCAT-TABNAME =   'GT_FINAL'.
+  GS_FCAT-OUTPUTLEN   = 10.
+  GS_FCAT-SELTEXT_M   = 'MBLNR'.
+  APPEND GS_FCAT TO   GT_FCAT_NEW.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   2.
+  GS_FCAT-FIELDNAME   = 'MJAHR'.
+  GS_FCAT-TABNAME =   'GT_FINAL'.
+  GS_FCAT-OUTPUTLEN   = 4.
+  GS_FCAT-SELTEXT_M   = 'MJAHR'.
+  APPEND GS_FCAT TO   GT_FCAT_NEW.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   3.
+  GS_FCAT-FIELDNAME   = 'BUDAT'.
+  GS_FCAT-TABNAME =   'GT_FINAL'.
+  GS_FCAT-OUTPUTLEN   = 10.
+  GS_FCAT-SELTEXT_M   = 'BUDAT'.
+  APPEND GS_FCAT TO   GT_FCAT_NEW.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS =   1.
+  GS_FCAT-COL_POS =   4.
+  GS_FCAT-FIELDNAME   = 'ZEILE'.
+  GS_FCAT-TABNAME =   'GT_FINAL'.
+  GS_FCAT-OUTPUTLEN   = 10.
+  GS_FCAT-SELTEXT_M   = 'ZEILE'.
+  APPEND GS_FCAT TO   GT_FCAT_NEW.
+  CLEAR GS_FCAT.
+
+  GS_FCAT-ROW_POS = 1.
+    GS_FCAT-COL_POS =   5.
+    GS_FCAT-FIELDNAME   = 'WERKS'.
+    GS_FCAT-TABNAME =   'GT_FINAL'.
+    GS_FCAT-OUTPUTLEN   = 4.
+    GS_FCAT-SELTEXT_M   = 'WERKS'.
+    APPEND GS_FCAT TO   GT_FCAT_NEW.
+    CLEAR GS_FCAT.
+
+    GS_FCAT-ROW_POS =   1.
+    GS_FCAT-COL_POS =   6.
+    GS_FCAT-FIELDNAME   = 'LGORT'.
+    GS_FCAT-TABNAME =   'GT_FINAL'.
+    GS_FCAT-OUTPUTLEN   = 4.
+    GS_FCAT-SELTEXT_M   = 'LGORT'.
+    APPEND GS_FCAT TO   GT_FCAT_NEW.
+    CLEAR GS_FCAT.
+
+    GS_FCAT-ROW_POS =   1.
+    GS_FCAT-COL_POS =   7.
+    GS_FCAT-FIELDNAME   = 'MATNR'.
+    GS_FCAT-TABNAME =   'GT_FINAL'.
+    GS_FCAT-OUTPUTLEN   = 10.
+    GS_FCAT-SELTEXT_M   = 'MATNR'.
+    APPEND GS_FCAT TO   GT_FCAT_NEW.
+    CLEAR GS_FCAT.
+
+    GS_FCAT-ROW_POS =   1.
+    GS_FCAT-COL_POS =   8.
+    GS_FCAT-FIELDNAME   = 'MAKTX'.
+    GS_FCAT-TABNAME =   'GT_FINAL'.
+    GS_FCAT-OUTPUTLEN   = 15.
+    GS_FCAT-SELTEXT_M   = 'MAKTX'.
+    APPEND GS_FCAT TO   GT_FCAT_NEW.
+    CLEAR GS_FCAT.
+
+    GS_FCAT-ROW_POS =   1.
+    GS_FCAT-COL_POS =   9.
+    GS_FCAT-FIELDNAME   = 'MENGE'.
+    GS_FCAT-TABNAME =   'GT_FINAL'.
+    GS_FCAT-OUTPUTLEN   = 13.
+    GS_FCAT-SELTEXT_M   = 'MENGE'.
+    APPEND GS_FCAT TO   GT_FCAT_NEW.
+    CLEAR GS_FCAT.
+
+
+    GS_FCAT-ROW_POS =   1.
+    GS_FCAT-COL_POS =   10.
+    GS_FCAT-FIELDNAME   = 'MEINS'.
+    GS_FCAT-TABNAME =   'GT_FINAL'.
+    GS_FCAT-OUTPUTLEN   = 3.
+    GS_FCAT-SELTEXT_M   = 'MEINS'.
+    APPEND GS_FCAT TO   GT_FCAT_NEW.
+    CLEAR GS_FCAT.
+*
+*   CALL FUNCTION 'REUSE_ALV_FIELDCATALOG_MERGE'
+*     EXPORTING
+*       I_PROGRAM_NAME     = SYST-CPROG
+*       I_INTERNAL_TABNAME = 'GT_FINAL'
+*     CHANGING
+*       CT_FIELDCAT         = GT_FCAT_NEW.
+
+
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      I_CALLBACK_PROGRAM     = SYST-CPROG
+*     I_CALLBACK_TOP_OF_PAGE = ''
+      I_STRUCTURE_NAME       = 'GT_FINAL'
+      IS_LAYOUT              = GS_LAYO
+      IT_FIELDCAT            = GT_FCAT_NEW
+*      IT_SORT                = GT_SORT
+*      I_DEFAULT              = 'X'
+    TABLES
+      T_OUTTAB               = GT_FINAL.
+
+*   REFRESH: GT_FCAT_NEW.
+
+ENDFORM.                      " DISP_LINE_DATA
+
