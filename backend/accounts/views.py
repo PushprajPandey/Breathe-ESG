@@ -8,6 +8,7 @@ from accounts.models import Role
 from accounts.serializers import UserSerializer
 from breatheesg.permissions import IsAdmin
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 
 User = get_user_model()
 
@@ -58,4 +59,25 @@ class HealthView(APIView):
             connection.ensure_connection()
         except Exception:
             db_ok = False
-        return Response({"status": "ok", "database": "connected" if db_ok else "unavailable"})
+
+        # Free-tier Render often blocks "Shell". If demo users are missing,
+        # seed them automatically so the deployed app becomes usable.
+        seeded = False
+        seed_error = None
+        if db_ok and not User.objects.filter(username="analyst").exists():
+            try:
+                call_command("seed_data", verbosity=0)
+                seeded = True
+            except Exception as e:
+                # Health should remain "ok" even if seeding fails.
+                seeded = False
+                seed_error = str(e)
+
+        return Response(
+            {
+                "status": "ok",
+                "database": "connected" if db_ok else "unavailable",
+                "seeded": seeded,
+                "seed_error": seed_error,
+            }
+        )
