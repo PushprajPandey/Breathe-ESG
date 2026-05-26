@@ -7,7 +7,6 @@ Production-ready carbon emissions data ingestion and analyst review platform for
 - **Backend:** Django 5 + Django REST Framework + JWT auth
 - **Frontend:** React 18 + Vite + Tailwind CSS + React Query
 - **Database:** PostgreSQL (production) / SQLite (local dev)
-- **Design:** Stitch UI reference in `/stitch`
 
 ## Quick Start
 
